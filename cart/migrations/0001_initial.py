@@ -12,13 +12,19 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Notification',
+            name='Cart',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('title', models.CharField(max_length=200)),
-                ('message', models.TextField()),
-                ('is_read', models.BooleanField(default=False)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('updated_at', models.DateTimeField(auto_now=True)),
+            ],
+        ),
+        migrations.CreateModel(
+            name='CartItem',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('quantity', models.PositiveIntegerField(default=1)),
+                ('added_at', models.DateTimeField(auto_now_add=True)),
             ],
         ),
     ]
