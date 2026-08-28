@@ -6,6 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from .models import Delivery
 from .serializers import DeliverySerializer
+from notifications.models import Notification
 
 class DeliveryViewSet(viewsets.ModelViewSet):
     serializer_class = DeliverySerializer
@@ -54,20 +55,6 @@ class DeliveryViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
             
-        order_id = request.data.get("order")
-        delivery_person_id = request.data.get(
-            "delivery_person"
-        )
-        
-        # Make sure both values are provided
-        if not order_id or not delivery_person_id:
-            return Response(
-                {
-                    "detail": "Both order and delivery person are required."
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
-            
         # Validate the serializer
         serializer = self.get_serializer(
             data=request.data
@@ -80,6 +67,13 @@ class DeliveryViewSet(viewsets.ModelViewSet):
         # Save the delivery
         delivery = serializer.save(
             status="assigned"
+        )
+        
+        # Notify the delivery personnel automatically
+        Notification.objects.create(
+            user=delivery.delivery_person,
+            title="New Delivery Assigned",
+            message=f"Order #{delivery.order.id} has been assigned to you."
         )
         
         return Response(
@@ -108,7 +102,7 @@ class DeliveryViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_403_FORBIDDEN
                 )
                 
-            return self.update_delivery_status(
+            return self._update_delivery_status(
                 delivery,
                 request
             )
@@ -141,7 +135,7 @@ class DeliveryViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_403_FORBIDDEN
                 )
                 
-            return self.update_delivery_status(
+            return self._update_delivery_status(
                 delivery,
                 request
             )
@@ -153,7 +147,7 @@ class DeliveryViewSet(viewsets.ModelViewSet):
             status=status.HTTP_403_FORBIDDEN
         )
         
-    def update_delivery_status(self, delivery, request):
+    def _update_delivery_status(self, delivery, request):
         new_status = request.data.get("status")
         valid_statuses = [
             "assigned",
@@ -173,35 +167,56 @@ class DeliveryViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
             
+        # Don't create duplicate notifications if the same status is submitted again
+        old_status = delivery.status
+        
+        if new_status == old_status:
+            return Response(
+                {
+                    "detail": f"Delivery is already {new_status}."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
         delivery.status = new_status
         
-        # When delivery is completed, save the delivery timestamp
-        if new_status == "delivered":
+        if new_status == "picked":
+            delivery.order.status = "confirmed"
+            delivery.order.save(
+                update_fields=["status"]
+            )
+            
+            Notification.objects.create(
+                user=delivery.order.customer,
+                title="Order Picked Up",
+                message=f"Your order #{delivery.order.id} has been picked up by the delivery personnel."
+            )
+            
+        elif new_status == "delivering":
+            delivery.order.status = "shipped"
+            delivery.order.save(
+                update_fields=["status"]
+            )
+            
+            Notification.objects.create(
+                user=delivery.order.customer,
+                title="Order Shipped",
+                message=f"Your order #{delivery.order.id} is now out for delivery."
+            )
+            
+        elif new_status == "delivered":
             delivery.delivered_at = timezone.now()
             
-            # Also mark the related order as delivered
             delivery.order.status = "delivered"
             
             delivery.order.save(
                 update_fields=["status"]
             )
             
-        elif new_status == "picked":
-            
-            # Order will be confirmed once delivery personnel picks it up
-            delivery.order.status = "confirmed"
-            
-            delivery.order.save(
-                update_fields=["status"]
-            )
-            
-        elif new_status == "delivering":
-            
-            # Order is now on its way
-            delivery.order.status = "shipped"
-            
-            delivery.order.save(
-                update_fields=["status"]
+            Notification.objects.create(
+                user=delivery.order.customer,
+                title="Order Delivered",
+                message=f"Your order #{delivery.order.id} has been delivered successfully."
             )
             
         delivery.save()
