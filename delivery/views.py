@@ -7,6 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from .models import Delivery
 from .serializers import DeliverySerializer
 from notifications.models import Notification
+from notifications.email_utils import send_order_email, send_delivery_assignment_email
 
 class DeliveryViewSet(viewsets.ModelViewSet):
     serializer_class = DeliverySerializer
@@ -74,6 +75,12 @@ class DeliveryViewSet(viewsets.ModelViewSet):
             user=delivery.delivery_person,
             title="New Delivery Assigned",
             message=f"Order #{delivery.order.id} has been assigned to you."
+        )
+        
+        # send email to the delivery personnel
+        send_delivery_assignment_email(
+            delivery.delivery_person,
+            delivery.order
         )
         
         return Response(
@@ -192,6 +199,14 @@ class DeliveryViewSet(viewsets.ModelViewSet):
                 message=f"Your order #{delivery.order.id} has been picked up by the delivery personnel."
             )
             
+            send_order_email(
+                delivery.order.customer,
+                "Your Order Has Been Picked Up",
+                (
+                    f"Your order #{delivery.order.id} has been picked up by the delivery personnel."
+                )
+            )
+            
         elif new_status == "delivering":
             delivery.order.status = "shipped"
             delivery.order.save(
@@ -202,6 +217,14 @@ class DeliveryViewSet(viewsets.ModelViewSet):
                 user=delivery.order.customer,
                 title="Order Shipped",
                 message=f"Your order #{delivery.order.id} is now out for delivery."
+            )
+            
+            send_order_email(
+                delivery.order.customer,
+                "Your Order Is Out for Delivery",
+                (
+                    f"Your order #{delivery.order.id} is now out for delivery."
+                )
             )
             
         elif new_status == "delivered":
@@ -217,6 +240,14 @@ class DeliveryViewSet(viewsets.ModelViewSet):
                 user=delivery.order.customer,
                 title="Order Delivered",
                 message=f"Your order #{delivery.order.id} has been delivered successfully."
+            )
+            
+            send_order_email(
+                delivery.order.customer,
+                "Your Order Has Been Delivered",
+                (
+                    f"Your order #{delivery.order.id} has been delivered successfully"
+                )
             )
             
         delivery.save()

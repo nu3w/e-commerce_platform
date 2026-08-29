@@ -11,6 +11,8 @@ from .serializers import OrderSerializer
 
 from cart.models import Cart
 
+from notifications.email_utils import send_order_email
+
 
 class OrderViewSet(viewsets.ModelViewSet):
 
@@ -128,6 +130,18 @@ class OrderViewSet(viewsets.ModelViewSet):
             cart.items.all().delete()
 
         serializer = self.get_serializer(order)
+
+        send_order_email(
+            request.user,
+            "Order Confirmation",
+            (
+                f"Thank you for you order!\n\n"
+                f"Order ID: #{order.id}\n"
+                f"Total: {order.total_price}\n"
+                f"Status: {order.status}\n\n"
+                "We will notify you when your order status changes."
+            )
+        )
 
         return Response(
             serializer.data,
