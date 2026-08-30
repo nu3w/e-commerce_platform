@@ -8,6 +8,7 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from .models import Category, Product
 from .serializers import CategorySerializer, ProductSerializer
 
+from notifications.email_utils import notify_low_stock
 
 class ProductViewSet(viewsets.ModelViewSet):
 
@@ -146,14 +147,15 @@ class ProductViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
 
         # Suppliers cannot change the owner of their products.
-        # Even if they send another supplier ID,
-        # the product remains assigned to themselves.
         if self.request.user.role == "supplier":
-            serializer.save(supplier=self.request.user)
+            product = serializer.save(supplier=self.request.user)
 
         # Admin is allowed to change the supplier.
         else:
-            serializer.save()
+            product = serializer.save()
+            
+        # Check whether stock is low
+        notify_low_stock(product)
 
     def destroy(self, request, *args, **kwargs):
 
