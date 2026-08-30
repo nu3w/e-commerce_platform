@@ -26,12 +26,14 @@ class ProductViewSet(viewsets.ModelViewSet):
     search_fields = [
         "name",
         "category__name",
+        "price",
     ]
 
     # Filter products by category and price
     filterset_fields = {
         "category": ["exact"],
         "price": ["gte", "lte"],
+        "supplier": ["exact"],
     }
 
     # Fields users can use for ordering
@@ -43,6 +45,25 @@ class ProductViewSet(viewsets.ModelViewSet):
 
     # Default ordering: newest products first
     ordering = ["-added_at"]
+    
+    def get_queryset(self):
+        
+        # Suppliers can only see their own invemtory
+        if self.request.user.role == "supplier":
+            return Product.objects.filter(
+                supplier=self.request.user
+            )
+            
+        # Admin can see all products
+        if self.request.user.role == "admin":
+            return Product.objects.all()
+        
+        # Customers can browse all products
+        if self.request.user.role == "customer":
+            return Product.objects.all()
+        
+        # Delivery Personnel do not need access to products
+        return Product.objects.none()
 
     def create(self, request, *args, **kwargs):
 

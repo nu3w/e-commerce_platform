@@ -10,8 +10,16 @@ from rest_framework.authtoken.models import Token
 from .serializers import RegisterSerializers
 from .permissions import IsAdmin, IsSupplier, IsCustomer, IsDeliveryPersonnel
 
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers
+
 class RegisterView(APIView):
     permission_classes = [AllowAny]
+    
+    @extend_schema( 
+        request=RegisterSerializers, 
+        responses={201: dict}
+    )
     
     def post(self, request):
         serializer = RegisterSerializers(data=request.data)
@@ -29,9 +37,21 @@ class RegisterView(APIView):
             },
             status=status.HTTP_201_CREATED
         )
-        
+
 class LoginView(APIView):
     permission_classes = [AllowAny]
+    
+            
+    @extend_schema(
+        request=inline_serializer(
+            name="LoginRequest",
+            fields={
+                "username": serializers.CharField(),
+                "password": serializers.CharField(),
+            },
+        ),
+        responses={200:dict, 401: dict}
+    )
     
     def post(self, request):
         username = request.data.get("username")
@@ -69,6 +89,8 @@ class LoginView(APIView):
 class ProfileView(APIView):
     permission_classes = [IsAuthenticated]
     
+    @extend_schema(responses=dict)
+    
     def get(self, request):
         return Response({
             "id": request.user.id,
@@ -80,6 +102,8 @@ class ProfileView(APIView):
 class CustomerTestView(APIView):
     permission_classes = [IsCustomer]
     
+    @extend_schema(responses=dict)
+    
     def get(self, request):
         return Response({
             "message": "You are allowed to access the customer area.",
@@ -89,6 +113,8 @@ class CustomerTestView(APIView):
         
 class SupplierTestView(APIView):
     permission_classes = [IsSupplier]
+    
+    @extend_schema(responses=dict)
     
     def get(self, request):
         return Response({
@@ -100,6 +126,8 @@ class SupplierTestView(APIView):
 class DeliveryPersonnelTestView(APIView):
     permission_classes = [IsDeliveryPersonnel]
     
+    @extend_schema(responses=dict)
+    
     def get(self, request):
         return Response({
             "message": "You are allowed to access the delivery area.",
@@ -109,6 +137,8 @@ class DeliveryPersonnelTestView(APIView):
         
 class AdminTestView(APIView):
     permission_classes = [IsAdmin]
+    
+    @extend_schema(responses=dict)
     
     def get(self, request):
         return Response({

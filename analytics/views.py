@@ -8,8 +8,12 @@ from orders.models import Order, OrderItem
 from products.models import Product
 from delivery.models import Delivery
 
+from drf_spectacular.utils import extend_schema
+
 class AdminAnalyticsView(APIView):
     permission_classes = [IsAuthenticated]
+    
+    @extend_schema(responses=dict)
     
     def get(self, request):
         
@@ -107,6 +111,8 @@ class AdminAnalyticsView(APIView):
         
 class SupplierAnalyticsView(APIView):
     permission_classes = [IsAuthenticated]
+    
+    @extend_schema(responses=dict)
     
     def get(self, request):
         

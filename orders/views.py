@@ -6,6 +6,8 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
+from django_filters.rest_framework import DjangoFilterBackend
+
 from .models import Order, OrderItem
 from .serializers import OrderSerializer
 
@@ -18,6 +20,15 @@ class OrderViewSet(viewsets.ModelViewSet):
 
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
+    
+    # Enable filtering for orders
+    filter_backends = [DjangoFilterBackend]
+    
+    # Admin can filter orders by status and customer
+    filterset_fields = {
+        "status": ["exact"],
+        "customer": ["exact"],
+    }
 
     def get_queryset(self):
 

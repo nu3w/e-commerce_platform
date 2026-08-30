@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'django_filters',
+    'drf_spectacular',
 ]
 
 MIDDLEWARE = [
@@ -155,6 +156,8 @@ REST_FRAMEWORK = {
         "rest_framework.filters.SearchFilter",
     ],
     
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     
     "PAGE_SIZE": 5,
@@ -174,3 +177,10 @@ DEFAULT_FROM_EMAIL = os.getenv(
     "DEFAULT_FROM_EMAIL",
     EMAIL_HOST_USER
 )
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "E-Commerce",
+    "DESCRIPTION": "E-Commerce API",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+}
